@@ -1,51 +1,3 @@
-// const express = require("express");
-// const http = require("http");
-// const { Server } = require("socket.io");
-// const cors = require("cors");
-
-// const app = express();
-// app.use(cors());
-
-// const server = http.createServer(app);
-// const io = new Server(server, {
-//   cors: {
-//     origin: "*",
-//     methods: ["GET", "POST"],
-//   },
-// });
-
-// io.on("connection", (socket) => {
-//   console.log("User connected:", socket.id);
-
-//   socket.on("join-room", (roomId) => {
-//     if (!socket.rooms.has(roomId)) {
-//       socket.join(roomId);
-//       console.log(`${socket.id} joined room ${roomId}`);
-//     }
-//   });  
-
-//   socket.on("code-change", ({ roomId, code }) => {
-//     socket.to(roomId).emit("code-change", code);
-//   });
-
-//   socket.on("cursor-change", ({ roomId, cursorData }) => {
-//     socket.to(roomId).emit("cursor-change", {
-//       socketId: socket.id,
-//       cursorData,
-//     });
-//   });
-
-//   socket.on("disconnect", () => {
-//     console.log("User disconnected:", socket.id);
-//     io.emit("user-left", socket.id);
-//   });
-// });
-
-// server.listen(5000, () => {
-//   console.log("Server listening on port 5000");
-// });
-
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -70,7 +22,7 @@ io.on('connection', (socket) => {
 
   socket.on('join-room', ({ roomId }) => {
     console.log(`user joined`);
-    
+
     if (!roomToSockets[roomId]) {
       roomToSockets[roomId] = [];
     }
@@ -111,7 +63,7 @@ io.on('connection', (socket) => {
 
   // Code editor collaboration events
   socket.on('code-change', ({ roomId, code }) => {
-    console.log('room id: ',roomId);
+    console.log('room id: ', roomId);
     socket.to(roomId).emit('code-change', code);
   });
 
@@ -121,6 +73,12 @@ io.on('connection', (socket) => {
       socketId: socket.id,
       cursorData,
     });
+  });
+
+  // 💬 Chat message handling
+  socket.on('send-message', ({ roomId, message }) => {
+    console.log(`💬 Message in room ${ roomId }:`, message);
+    socket.to(roomId).emit('receive-message', message);
   });
 
   socket.on('disconnect', () => {
