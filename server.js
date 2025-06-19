@@ -16,6 +16,7 @@ const io = new Server(server, {
 
 const socketToRoom = {};
 const roomToSockets = {};
+const chat = {}; // 💬 Store chat messages by roomId
 
 io.on('connection', (socket) => {
   console.log(`🔌 New socket connected: ${socket.id}`);
@@ -40,6 +41,11 @@ io.on('connection', (socket) => {
       socket.join(roomId);
     }
 
+    // 💬 Initialize chat store for room
+    if (!chat[roomId]) {
+      chat[roomId] = [];
+    }
+
     const otherUser = room.find(id => id !== socket.id);
     if (otherUser) {
       socket.emit('user-joined', { socketId: otherUser });
@@ -49,47 +55,33 @@ io.on('connection', (socket) => {
     console.log(`✅ ${socket.id} joined room ${roomId}`);
   });
 
-  socket.on('send-offer', ({ offer, to }) => {
-    io.to(to).emit('receive-offer', { offer, from: socket.id });
-  });
-
-  socket.on('send-answer', ({ answer, to }) => {
-    io.to(to).emit('receive-answer', { answer, from: socket.id });
-  });
-
-  socket.on('send-ice-candidate', ({ candidate, to }) => {
-    io.to(to).emit('receive-ice-candidate', { candidate, from: socket.id });
-  });
-
-  // Code editor collaboration events
-  socket.on('code-change', ({ roomId, code }) => {
-    console.log('room id: ', roomId);
-    socket.to(roomId).emit('code-change', code);
-  });
-
-  socket.on('cursor-change', ({ roomId, cursorData }) => {
-    console.log('cursor-change emitted');
-    socket.to(roomId).emit('cursor-change', {
-      socketId: socket.id,
-      cursorData,
-    });
-  });
-
-  // 💬 Chat message handling
+  // 💬 Chat event
   socket.on('send-message', ({ roomId, message }) => {
-    console.log(`💬 Message in room ${ roomId }:`, message);
+    console.log(`💬 Message in room ${roomId}:`, message);
+
+    // Store in chat array
+    if (chat[roomId]) {
+      chat[roomId].push({ from: socket.id, message, timestamp: Date.now() });
+    }
+
     socket.to(roomId).emit('receive-message', message);
   });
 
+  // 🔌 Disconnect handling
   socket.on('disconnect', () => {
     const roomId = socketToRoom[socket.id];
     const room = roomToSockets[roomId];
     if (room) {
       roomToSockets[roomId] = room.filter(id => id !== socket.id);
+
       if (roomToSockets[roomId].length === 0) {
+        // ✅ If no users left in room, clean up everything
         delete roomToSockets[roomId];
+        delete chat[roomId]; // 💬 Clean up chat memory
+        console.log(`🧹 Chat data for room ${roomId} deleted`);
       }
     }
+
     delete socketToRoom[socket.id];
 
     const peers = roomToSockets[roomId] || [];
@@ -100,6 +92,7 @@ io.on('connection', (socket) => {
     console.log(`❌ User disconnected: ${socket.id}`);
   });
 });
+
 
 server.listen(5000, () => {
   console.log('🚀 Server listening on port 5000');
