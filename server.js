@@ -42,11 +42,6 @@ io.on('connection', (socket) => {
       socket.join(roomId);
     }
 
-    // 💬 Initialize chat store for room
-    if (!chat[roomId]) {
-      chat[roomId] = [];
-    }
-
     const otherUser = room.find(id => id !== socket.id);
     if (otherUser) {
       socket.emit('user-joined', { socketId: otherUser });
@@ -55,8 +50,6 @@ io.on('connection', (socket) => {
 
     console.log(`✅ ${socket.id} joined room ${roomId}`);
   });
-
-  socket.emit('chat-history', chatHistory[roomId] || []);
 
   // 💬 Chat event
   socket.on('send-message', ({ roomId, message }) => {
@@ -74,8 +67,6 @@ io.on('connection', (socket) => {
     chatHistory[roomId].push(fullMessage);
     socket.to(roomId).emit('receive-message', fullMessage);
   });
-
-
 
   // 🔌 Disconnect handling
   socket.on('disconnect', () => {
