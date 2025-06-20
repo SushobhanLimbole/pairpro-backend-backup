@@ -30,6 +30,9 @@ io.on('connection', (socket) => {
 
     const room = roomToSockets[roomId];
 
+    socket.emit('chat-history', chatHistory[roomId] || []);
+    console.log('chat history sent ', (chatHistory[roomId] || []));
+
     if (room.length >= 2) {
       socket.emit('room-full');
       return;
@@ -88,6 +91,7 @@ io.on('connection', (socket) => {
       chatHistory[roomId] = [];
     }
 
+    console.log('send-message emmitted');
     chatHistory[roomId].push(fullMessage);
     socket.to(roomId).emit('receive-message', fullMessage);
   });
