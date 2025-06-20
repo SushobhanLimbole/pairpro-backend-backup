@@ -17,6 +17,7 @@ const io = new Server(server, {
 const socketToRoom = {};
 const roomToSockets = {};
 const chat = {}; // 💬 Store chat messages by roomId
+const chatHistory = {}; // { roomId: [ { senderId, text, timestamp } ] }
 
 io.on('connection', (socket) => {
   console.log(`🔌 New socket connected: ${socket.id}`);
@@ -55,17 +56,26 @@ io.on('connection', (socket) => {
     console.log(`✅ ${socket.id} joined room ${roomId}`);
   });
 
+  socket.emit('chat-history', chatHistory[roomId] || []);
+
   // 💬 Chat event
   socket.on('send-message', ({ roomId, message }) => {
-    console.log(`💬 Message in room ${roomId}:`, message);
+    const fullMessage = {
+      senderId: socket.id,
+      sender: 'user', // you can leave this if client computes "me" vs "other"
+      text: message.text,
+      timestamp: Date.now()
+    };
 
-    // Store in chat array
-    if (chat[roomId]) {
-      chat[roomId].push({ from: socket.id, message, timestamp: Date.now() });
+    if (!chatHistory[roomId]) {
+      chatHistory[roomId] = [];
     }
 
-    socket.to(roomId).emit('receive-message', message);
+    chatHistory[roomId].push(fullMessage);
+    socket.to(roomId).emit('receive-message', fullMessage);
   });
+
+
 
   // 🔌 Disconnect handling
   socket.on('disconnect', () => {
@@ -77,7 +87,8 @@ io.on('connection', (socket) => {
       if (roomToSockets[roomId].length === 0) {
         // ✅ If no users left in room, clean up everything
         delete roomToSockets[roomId];
-        delete chat[roomId]; // 💬 Clean up chat memory
+        // delete chat[roomId]; // 💬 Clean up chat memory
+        delete chatHistory[roomId];
         console.log(`🧹 Chat data for room ${roomId} deleted`);
       }
     }
