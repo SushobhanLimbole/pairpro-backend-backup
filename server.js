@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const { console } = require('inspector');
 
 const app = express();
 app.use(cors());
@@ -71,6 +72,11 @@ io.on('connection', (socket) => {
 
   socket.on('send-ice-candidate', ({ candidate, to }) => {
     io.to(to).emit('receive-ice-candidate', { candidate, from: socket.id });
+  });
+
+  socket.on('language-change', ({ language , roomId }) => {
+    console.log('language changed to ',language);
+    socket.to(roomId).emit('get-language',language);
   });
 
   // Code editor collaboration events
