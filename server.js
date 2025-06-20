@@ -74,10 +74,17 @@ io.on('connection', (socket) => {
     io.to(to).emit('receive-ice-candidate', { candidate, from: socket.id });
   });
 
-  socket.on('language-change', ({ language , roomId }) => {
-    console.log('language changed to ',language);
-    socket.to(roomId).emit('get-language',language);
+  socket.on('language-change', ({ language, roomId }) => {
+    console.log('language changed to ', language);
+    socket.to(roomId).emit('get-language', language);
   });
+
+  socket.on('get-existing-peers', ({ roomId }) => {
+    const peers = roomToSockets[roomId] || [];
+    const otherPeers = peers.filter(id => id !== socket.id);
+    socket.emit('existing-peers', otherPeers);
+  });
+
 
   // Code editor collaboration events
   socket.on('code-change', ({ roomId, code }) => {
