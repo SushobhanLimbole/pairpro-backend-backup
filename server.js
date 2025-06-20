@@ -124,6 +124,31 @@ io.on('connection', (socket) => {
 
     console.log(`❌ User disconnected: ${socket.id}`);
   });
+
+
+  socket.on('leave-room', ({ roomId }) => {
+    console.log(`👋 User manually left room: ${socket.id}`);
+
+    const room = roomToSockets[roomId];
+    if (room) {
+      roomToSockets[roomId] = room.filter(id => id !== socket.id);
+      if (roomToSockets[roomId].length === 0) {
+        delete roomToSockets[roomId];
+        delete chatHistory[roomId];
+        console.log(`🧹 Chat data for room ${roomId} deleted`);
+      }
+    }
+
+    delete socketToRoom[socket.id];
+
+    const peers = roomToSockets[roomId] || [];
+    peers.forEach(peerId => {
+      io.to(peerId).emit('user-left', { socketId: socket.id });
+    });
+
+    socket.leave(roomId);
+  });
+
 });
 
 server.listen(5000, () => {
