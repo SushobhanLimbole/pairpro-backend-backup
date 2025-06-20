@@ -30,8 +30,16 @@ io.on('connection', (socket) => {
 
     const room = roomToSockets[roomId];
 
-    socket.emit('chat-history', chatHistory[roomId] || []);
-    console.log('chat history sent ', (chatHistory[roomId] || []));
+    socket.on('get-chat-history', ({ roomId }) => {
+      console.log('chat history sent ', (chatHistory[roomId] || []));
+      socket.emit('chat-history', chatHistory[roomId] || []);
+    });
+
+    socket.on('chat-history', (history) => {
+      console.log('[Chat] Received chat history:', history);
+      const sorted = [...history].sort((a, b) => a.timestamp - b.timestamp);
+      setMessages(sorted);
+    });
 
     if (room.length >= 2) {
       socket.emit('room-full');
